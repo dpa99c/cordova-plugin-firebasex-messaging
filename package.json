@@ -1,7 +1,8 @@
 {
   "name": "cordova-plugin-firebasex-messaging",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Cordova plugin for Firebase Cloud Messaging",
+  "author": "Dave Alden",
   "license": "MIT",
   "keywords": [
     "cordova",
@@ -17,6 +18,10 @@
       "android",
       "ios"
     ]
+  },
+    "repository": {
+    "type": "git",
+    "url": "https://github.com/dpa99c/cordova-plugin-firebasex-messaging.git"
   },
   "engines": {
     "cordovaDependencies": {
