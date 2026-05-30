@@ -20,6 +20,53 @@ var PLUGIN_ID = "cordova-plugin-firebasex-messaging";
 /** @constant {string} The wrapper meta-plugin identifier used as a fallback source for plugin variables. */
 var WRAPPER_PLUGIN_ID = "cordova-plugin-firebasex";
 
+function isSwiftPackageManagerEnabled(projectRoot) {
+    var iosPlatformPath = path.join(projectRoot, "platforms", "ios");
+    var appSubDirPath = path.join(iosPlatformPath, "App");
+    return fs.existsSync(appSubDirPath) && fs.statSync(appSubDirPath).isDirectory();
+}
+
+function updatePackageSwiftVersion(projectRoot, newVersion) {
+    var packagePaths = [];
+    var seen = {};
+    var versionRegex = /(let\s+firebaseSDKVersion(?::\s*Version)?\s*=\s*")([^"]+)(")/;
+
+    function addPackagePath(packagePath) {
+        if (!packagePath || seen[packagePath] || !fs.existsSync(packagePath)) return;
+        seen[packagePath] = true;
+        packagePaths.push(packagePath);
+    }
+
+    function collectPackagePaths(rootDir, depth) {
+        if (depth < 0 || !fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) return;
+        fs.readdirSync(rootDir).forEach(function(entry) {
+            var entryPath = path.join(rootDir, entry);
+            var stat = fs.statSync(entryPath);
+            if (stat.isDirectory()) {
+                collectPackagePaths(entryPath, depth - 1);
+                return;
+            }
+            if (entry === "Package.swift") {
+                var contents = fs.readFileSync(entryPath, "utf-8");
+                if (contents.indexOf('name: "' + PLUGIN_ID + '"') !== -1) {
+                    addPackagePath(entryPath);
+                }
+            }
+        });
+    }
+
+    addPackagePath(path.join(projectRoot, "plugins", PLUGIN_ID, "Package.swift"));
+    collectPackagePaths(path.join(projectRoot, "platforms", "ios"), 4);
+
+    packagePaths.forEach(function(packagePath) {
+        var contents = fs.readFileSync(packagePath, "utf-8");
+        var match = contents.match(versionRegex);
+        if (!match || match[2] === newVersion) return;
+        fs.writeFileSync(packagePath, contents.replace(versionRegex, '$1' + newVersion + '$3'));
+        console.log("[FirebasexMessaging] Firebase SDK version set to v" + newVersion + " in " + packagePath);
+    });
+}
+
 /**
  * Resolves plugin variables using the 4-layer override strategy.
  *
@@ -103,14 +150,18 @@ function resolvePluginVariables(context) {
 module.exports = function(context) {
     var pluginVariables = resolvePluginVariables(context);
     if (!pluginVariables["IOS_FIREBASE_SDK_VERSION"]){
-        console.warn("[FirebasexMessaging] IOS_FIREBASE_SDK_VERSION variable not set. Skipping Podfile update for FirebaseMessaging pod version.");
+        console.warn("[FirebasexMessaging] IOS_FIREBASE_SDK_VERSION variable not set. Skipping iOS dependency version update.");
+        return;
+    }
+
+    if (isSwiftPackageManagerEnabled(context.opts.projectRoot)) {
+        updatePackageSwiftVersion(context.opts.projectRoot, pluginVariables["IOS_FIREBASE_SDK_VERSION"]);
         return;
     }
 
     var iosPlatformPath = path.join(context.opts.projectRoot, "platforms", "ios");
     var podFilePath = path.join(iosPlatformPath, "Podfile");
     if (!fs.existsSync(podFilePath)) {
-        console.warn("[FirebasexMessaging] Podfile not found at " + podFilePath + ". Cannot update FirebaseMessaging pod version.");
         return;
     }
 

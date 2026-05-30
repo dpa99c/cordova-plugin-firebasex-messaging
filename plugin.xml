@@ -75,7 +75,7 @@
     </platform>
 
     <!-- iOS -->
-    <platform name="ios">
+    <platform name="ios" package="swift">
         <config-file target="config.xml" parent="/*">
             <feature name="FirebasexMessagingPlugin">
                 <param name="ios-package" value="FirebasexMessagingPlugin" />
@@ -115,7 +115,7 @@
                 <source url="https://cdn.cocoapods.org/" />
             </config>
             <pods use-frameworks="true">
-                <pod name="FirebaseMessaging" spec="12.9.0" />
+                <pod name="FirebaseMessaging" spec="12.9.0" nospm="true" />
             </pods>
         </podspec>
 
