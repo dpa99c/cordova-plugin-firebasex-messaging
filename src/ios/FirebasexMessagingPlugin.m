@@ -8,10 +8,10 @@
  * pn-actions.json, and message delivery queueing/forwarding to JavaScript.
  */
 #import "FirebasexMessagingPlugin.h"
-#import "AppDelegate+FirebasexCore.h"
 #import "AppDelegate+FirebasexMessaging.h"
 #import "FirebasePluginMessageReceiverManager.h"
 #import <Cordova/CDV.h>
+@import cordova_plugin_firebasex_core;
 @import FirebaseMessaging;
 @import UserNotifications;
 
@@ -340,7 +340,7 @@ static BOOL immediateMessagePayloadDelivery = NO;
                             @try {
                                 NSLog(@"requestAuthorizationWithOptions: granted=%@", granted ? @"YES" : @"NO");
                                 if (error == nil && granted) {
-                                    [UNUserNotificationCenter currentNotificationCenter].delegate = [AppDelegate instance];
+                                    [UNUserNotificationCenter currentNotificationCenter].delegate = [CDVAppDelegate instance];
                                     [self registerForRemoteNotifications];
                                 }
                                 [[FirebasexCorePlugin sharedInstance] handleBoolResultWithPotentialError:error
@@ -676,7 +676,7 @@ static BOOL immediateMessagePayloadDelivery = NO;
             return;
         }
         if (self.notificationCallbackId != nil &&
-            ([[AppDelegate instance].applicationInBackground isEqual:@(NO)] || immediateMessagePayloadDelivery)) {
+            ([[CDVAppDelegate instance].applicationInBackground isEqual:@(NO)] || immediateMessagePayloadDelivery)) {
             [[FirebasexCorePlugin sharedInstance] sendPluginDictionaryResultAndKeepCallback:userInfo
                                                                                    command:self.commandDelegate
                                                                                 callbackId:self.notificationCallbackId];

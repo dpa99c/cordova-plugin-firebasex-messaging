@@ -8,7 +8,7 @@
  * Notification channel methods are present as no-op stubs for Android API compatibility.
  */
 #import <Cordova/CDV.h>
-#import "FirebasexCorePlugin.h"
+@import cordova_plugin_firebasex_core;
 
 @import UserNotifications;
 

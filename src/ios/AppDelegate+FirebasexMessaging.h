@@ -7,8 +7,8 @@
  * notification tap responses.
  */
 
-#import "AppDelegate.h"
-#import "AppDelegate+FirebasexCore.h"
+#import <Cordova/CDVAppDelegate.h>
+@import cordova_plugin_firebasex_core;
 
 @import UserNotifications;
 @import FirebaseMessaging;
@@ -29,11 +29,11 @@ extern NSString *const FirebasexNotificationTapped;
 extern NSString *const FirebasexNotificationSettings;
 
 /**
- * AppDelegate category for Firebase Cloud Messaging.
+ * CDVAppDelegate category for Firebase Cloud Messaging.
  *
  * Registers as FIRMessagingDelegate and UNUserNotificationCenterDelegate to handle
  * FCM token events, remote notification delivery, foreground notification display,
  * and notification tap responses including actionable notifications.
  */
-@interface AppDelegate (FirebasexMessaging) <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
+@interface CDVAppDelegate (FirebasexMessaging) <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
 @end

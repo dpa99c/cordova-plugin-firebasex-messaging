@@ -10,9 +10,9 @@
  */
 #import "AppDelegate+FirebasexMessaging.h"
 #import "FirebasexMessagingPlugin.h"
-#import "FirebasexCorePlugin.h"
 #import <objc/runtime.h>
 
+@import cordova_plugin_firebasex_core;
 @import UserNotifications;
 @import FirebaseMessaging;
 
@@ -32,7 +32,7 @@ static __weak id<UNUserNotificationCenterDelegate> _prevUserNotificationCenterDe
 /** Temporary mutable copy of notification userInfo for processing. */
 static NSDictionary *mutableUserInfo;
 
-@implementation AppDelegate (FirebasexMessaging)
+@implementation CDVAppDelegate (FirebasexMessaging)
 
 /**
  * Registers an observer for Core’s FirebasexAppDidFinishLaunching notification
@@ -44,7 +44,7 @@ static NSDictionary *mutableUserInfo;
                                                       object:nil
                                                        queue:nil
                                                   usingBlock:^(NSNotification *notification) {
-        AppDelegate *self = [AppDelegate instance];
+        CDVAppDelegate *self = [CDVAppDelegate instance];
         [self firebasexMessagingSetup];
     }];
 }
