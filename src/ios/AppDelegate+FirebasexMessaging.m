@@ -12,7 +12,13 @@
 #import "FirebasexMessagingPlugin.h"
 #import <objc/runtime.h>
 
-@import cordova_plugin_firebasex_core;
+#if __has_include("AppDelegate+FirebasexCore.h")
+    // Cordova-ios 7 / CocoaPods: Files are compiled in a flat target structure
+    #import "AppDelegate+FirebasexCore.h"
+#else
+    // Cordova-ios 8+ / SPM: Plugins are isolated Swift Package modules
+    @import cordova_plugin_firebasex_core;
+#endif
 @import UserNotifications;
 @import FirebaseMessaging;
 
@@ -56,6 +62,7 @@ static NSDictionary *mutableUserInfo;
  */
 - (void)firebasexMessagingSetup {
     @try {
+        [FirebasexCorePlugin.sharedInstance initFirebase];
         if ([self firebasexMessagingIsFCMEnabled]) {
             _prevUserNotificationCenterDelegate = [UNUserNotificationCenter currentNotificationCenter].delegate;
             [UNUserNotificationCenter currentNotificationCenter].delegate = self;

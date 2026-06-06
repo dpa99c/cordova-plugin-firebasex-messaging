@@ -11,7 +11,13 @@
 #import "AppDelegate+FirebasexMessaging.h"
 #import "FirebasePluginMessageReceiverManager.h"
 #import <Cordova/CDV.h>
-@import cordova_plugin_firebasex_core;
+#if __has_include("FirebasexCorePlugin.h")
+    // Cordova-ios 7 / CocoaPods: Files are compiled in a flat target structure
+    #import "AppDelegate+FirebasexCore.h"
+#else
+    // Cordova-ios 8+ / SPM: Plugins are isolated Swift Package modules
+    @import cordova_plugin_firebasex_core;
+#endif
 @import FirebaseMessaging;
 @import UserNotifications;
 
