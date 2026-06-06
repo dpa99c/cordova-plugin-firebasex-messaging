@@ -69,7 +69,7 @@
         <source-file src="src/android/OnNotificationReceiverActivity.java" target-dir="src/org/apache/cordova/firebasex/" />
 
         <preference name="ANDROID_ICON_ACCENT" default="#FFFFFF" />
-        <preference name="ANDROID_FIREBASE_MESSAGING_VERSION" default="25.0.1" />
+        <preference name="ANDROID_FIREBASE_MESSAGING_VERSION" default="25.0.2" />
 
         <framework src="com.google.firebase:firebase-messaging:$ANDROID_FIREBASE_MESSAGING_VERSION" />
     </platform>
