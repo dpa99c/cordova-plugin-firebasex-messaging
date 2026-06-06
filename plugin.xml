@@ -115,11 +115,11 @@
                 <source url="https://cdn.cocoapods.org/" />
             </config>
             <pods use-frameworks="true">
-                <pod name="FirebaseMessaging" spec="12.9.0" nospm="true" />
+                <pod name="FirebaseMessaging" spec="12.14.0" nospm="true" />
             </pods>
         </podspec>
 
-        <preference name="IOS_FIREBASE_SDK_VERSION" default="12.9.0" />
+        <preference name="IOS_FIREBASE_SDK_VERSION" default="12.14.0" />
 
         <hook type="after_plugin_install" src="scripts/ios/after_plugin_install.js" />
     </platform>
