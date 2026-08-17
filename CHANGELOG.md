@@ -1,3 +1,7 @@
+# Version 2.0.2
+- Move `FirebasePluginMessageReceiver` from core plugin to messaging plugin.
+	- Resolves https://github.com/dpa99c/cordova-plugin-firebasex-core/issues/1
+
 # Version 2.0.1
 - (ios) bugfix: pin `cordova-plugin-firebasex-core@^2.0.0` to ensure SPM version is available for `cordova-ios@8+`.
 
