@@ -97,7 +97,9 @@ public class FirebasexMessagingPlugin extends CordovaPlugin {
             immediateMessagePayloadDelivery = "true".equals(FirebasexCorePlugin.getInstance()
                     .getPluginVariableFromConfigXml("FIREBASE_MESSAGING_IMMEDIATE_PAYLOAD_DELIVERY"));
 
-            // Check for notification from app launch
+            // Check for notification from app launch.
+            // Detect both system-handled notifications (google.message_id in extras)
+            // and notifications routed through OnNotificationReceiverActivity (messageType in extras).
             Bundle extras = cordovaActivity.getIntent().getExtras();
             if (extras != null && extras.size() > 1) {
                 if (notificationStack == null) {
@@ -107,7 +109,23 @@ public class FirebasexMessagingPlugin extends CordovaPlugin {
                     extras.putString("messageType", "notification");
                     extras.putString("tap", "background");
                     notificationStack.add(extras);
-                    Log.d(TAG, "Notification message found on init: " + extras.toString());
+                    Log.d(TAG, "Notification message found on init (google.message_id): " + extras.toString());
+                } else if (extras.containsKey("messageType") && extras.containsKey("tap")) {
+                    // Already processed by OnNotificationReceiverActivity — avoid duplicate
+                    // Only add if not already in the stack (sendMessage may have queued it)
+                    boolean alreadyQueued = false;
+                    if (notificationStack != null) {
+                        for (Bundle b : notificationStack) {
+                            if (b == extras || (extras.getString("id") != null && extras.getString("id").equals(b.getString("id")))) {
+                                alreadyQueued = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (!alreadyQueued) {
+                        notificationStack.add(extras);
+                        Log.d(TAG, "Notification message found on init (messageType+tap): " + extras.toString());
+                    }
                 }
             }
 
@@ -867,16 +885,20 @@ public class FirebasexMessagingPlugin extends CordovaPlugin {
 
     /**
      * Sends any queued notifications to the JS layer.
+     * Takes a snapshot of the pending stack and clears it before iterating,
+     * so that sendMessage() can safely re-queue items without causing
+     * ConcurrentModificationException or data corruption from parallel tasks.
      */
     private synchronized void sendPendingNotifications() {
-        if (notificationStack != null) {
+        if (notificationStack != null && !notificationStack.isEmpty()) {
+            final ArrayList<Bundle> pending = new ArrayList<>(notificationStack);
+            notificationStack.clear();
             this.cordova.getThreadPool().execute(new Runnable() {
                 public void run() {
                     try {
-                        for (Bundle bundle : notificationStack) {
+                        for (Bundle bundle : pending) {
                             sendMessage(bundle, FirebasexCorePlugin.getApplicationContext());
                         }
-                        notificationStack.clear();
                     } catch (Exception e) {
                         FirebasexCorePlugin.handleExceptionWithoutContext(e);
                     }
