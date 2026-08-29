@@ -649,18 +649,27 @@ static BOOL immediateMessagePayloadDelivery = NO;
 
 /**
  * Delivers all queued notifications from the notification stack to the
- * JavaScript callback, then clears the stack.
+ * JavaScript callback, then removes only the notifications being delivered
+ * from the stack so notifications re-queued during delivery are preserved.
  */
 - (void)sendPendingNotifications {
-    if (self.notificationCallbackId != nil && self.notificationStack != nil && [self.notificationStack count]) {
-        @try {
-            for (NSDictionary *userInfo in self.notificationStack) {
-                [self sendNotification:userInfo];
-            }
-            [self.notificationStack removeAllObjects];
-        } @catch (NSException *exception) {
-            [[FirebasexCorePlugin sharedInstance] handlePluginExceptionWithoutContext:exception];
+    if (self.notificationCallbackId == nil || self.notificationStack == nil || ![self.notificationStack count]) {
+        return;
+    }
+
+    if ([[CDVAppDelegate instance].applicationInBackground isEqual:@(YES)] && !immediateMessagePayloadDelivery) {
+        return;
+    }
+
+    @try {
+        NSArray *pendingNotifications = [self.notificationStack copy];
+        [self.notificationStack removeAllObjects];
+
+        for (NSDictionary *userInfo in pendingNotifications) {
+            [self sendNotification:userInfo];
         }
+    } @catch (NSException *exception) {
+        [[FirebasexCorePlugin sharedInstance] handlePluginExceptionWithoutContext:exception];
     }
 }
 
