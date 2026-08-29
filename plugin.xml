@@ -15,7 +15,7 @@
         <engine name="cordova-ios" version=">=7" />
     </engines>
 
-    <dependency id="cordova-plugin-firebasex-core" />
+    <dependency id="cordova-plugin-firebasex-core" version="^1.0.0" />
 
     <!-- Preferences -->
     <preference name="FIREBASE_FCM_AUTOINIT_ENABLED" default="true" />
