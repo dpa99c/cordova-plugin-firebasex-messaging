@@ -1,6 +1,18 @@
+# Version 2.0.3
+- fix: pin core plugin dependency to v2
+- (ios) Resolve pending notification issues
+	- Resolves [issue #4](https://github.com/dpa99c/cordova-plugin-firebasex-core/issues/4)
+- Move `FirebasePluginMessageReceiver` from core plugin to messaging plugin.
+	- Resolves [issue #1](https://github.com/dpa99c/cordova-plugin-firebasex-core/issues/1)
+- fix(android): prevent loss of FCM notifications on cold start
+	- Merged from [PR #2](https://github.com/dpa99c/cordova-plugin-firebasex-messaging/pull/2)
+	- Resolves [issue #3](https://github.com/dpa99c/cordova-plugin-firebasex-messaging/issues/3)
+- fix: add types field to package.json so TypeScript resolves type definitions
+	- Merged from [PR #9](https://github.com/dpa99c/cordova-plugin-firebasex-messaging/pull/9)
+
 # Version 2.0.2
 - Move `FirebasePluginMessageReceiver` from core plugin to messaging plugin.
-	- Resolves https://github.com/dpa99c/cordova-plugin-firebasex-core/issues/1
+	- Resolves [issue #1](https://github.com/dpa99c/cordova-plugin-firebasex-core/issues/1
 
 # Version 2.0.1
 - (ios) bugfix: pin `cordova-plugin-firebasex-core@^2.0.0` to ensure SPM version is available for `cordova-ios@8+`.

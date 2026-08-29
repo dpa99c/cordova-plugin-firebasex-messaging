@@ -1,6 +1,6 @@
 {
   "name": "cordova-plugin-firebasex-messaging",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Cordova plugin for Firebase Cloud Messaging",
   "author": "Dave Alden",
   "license": "MIT",
