@@ -37,6 +37,8 @@ NSString *const FirebasexNotificationSettings = @"FirebasexNotificationSettings"
 static __weak id<UNUserNotificationCenterDelegate> _prevUserNotificationCenterDelegate = nil;
 /** Temporary mutable copy of notification userInfo for processing. */
 static NSDictionary *mutableUserInfo;
+/** Set once the delegates have been installed (from the launch notification or from pluginInitialize). */
+static BOOL messagingSetupDone = NO;
 
 @implementation CDVAppDelegate (FirebasexMessaging)
 
@@ -61,6 +63,10 @@ static NSDictionary *mutableUserInfo;
  * Preserves any previously set UNUserNotificationCenterDelegate for forwarding.
  */
 - (void)firebasexMessagingSetup {
+    if (messagingSetupDone) {
+        return;
+    }
+    messagingSetupDone = YES;
     @try {
         [FirebasexCorePlugin.sharedInstance initFirebase];
         if ([self firebasexMessagingIsFCMEnabled]) {
@@ -131,15 +137,22 @@ static NSDictionary *mutableUserInfo;
     didReceiveRemoteNotification:(NSDictionary *)userInfo
           fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler {
 
-    if (![self firebasexMessagingIsFCMEnabled]) return;
+    NSLog(@"FirebasexMessaging[native] application:didReceiveRemoteNotification:fetchCompletionHandler: called (inBackground=%@, pluginInstance=%@)",
+          self.applicationInBackground, [FirebasexMessagingPlugin instance] != nil ? @"yes" : @"no");
+    if (![self firebasexMessagingIsFCMEnabled]) {
+        completionHandler(UIBackgroundFetchResultNoData);
+        return;
+    }
 
+    UIBackgroundFetchResult result = UIBackgroundFetchResultFailed;
     @try {
         [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
         NSMutableDictionary *mutableInfo = [userInfo mutableCopy];
         NSDictionary *aps = [mutableInfo objectForKey:@"aps"];
         bool isContentAvailable = [self firebasexMessagingIsContentAvailable:userInfo];
+        bool hasAlert = [aps objectForKey:@"alert"] != nil;
 
-        if ([aps objectForKey:@"alert"] != nil) {
+        if (hasAlert) {
             [mutableInfo setValue:@"notification" forKey:@"messageType"];
             NSString *tap;
             if ([self.applicationInBackground isEqual:[NSNumber numberWithBool:YES]] && !isContentAvailable) {
@@ -152,19 +165,49 @@ static NSDictionary *mutableUserInfo;
 
         [[FirebasexCorePlugin sharedInstance] _logMessage:[NSString stringWithFormat:@"didReceiveRemoteNotification: %@", mutableInfo]];
 
-        completionHandler(UIBackgroundFetchResultNewData);
-
         if ([self.applicationInBackground isEqual:[NSNumber numberWithBool:YES]] && isContentAvailable) {
             [[FirebasexCorePlugin sharedInstance] _logError:@"didReceiveRemoteNotification: omitting foreground notification as content-available:1 so system notification will be shown"];
         } else {
             [self firebasexMessagingProcessMessageForForegroundNotification:mutableInfo];
         }
 
-        if ([self.applicationInBackground isEqual:[NSNumber numberWithBool:YES]] || !isContentAvailable) {
-            [[FirebasexMessagingPlugin instance] sendNotification:mutableInfo];
+        // In the foreground a content-available push that also has an alert is delivered by
+        // willPresentNotification (so it is not sent twice from here). A content-available push
+        // without an alert never reaches willPresentNotification, so it must be sent from here
+        // in the foreground too, otherwise it is lost.
+        if ([self.applicationInBackground isEqual:[NSNumber numberWithBool:YES]] || !isContentAvailable || !hasAlert) {
+            [self firebasexMessagingHandOverToPlugin:mutableInfo];
+        } else {
+            [[FirebasexCorePlugin sharedInstance] _logMessage:@"didReceiveRemoteNotification: foreground content-available push with alert, delivered by willPresentNotification"];
         }
+        result = UIBackgroundFetchResultNewData;
     } @catch (NSException *exception) {
+        // The core plugin has no instance in a background launch, so log here as well.
+        NSLog(@"FirebasexMessaging[native] ERROR: exception in didReceiveRemoteNotification: %@", exception.reason);
         [[FirebasexCorePlugin sharedInstance] handlePluginExceptionWithoutContext:exception];
+    }
+
+    // Called last, once the payload has been delivered or persisted: iOS may suspend the app
+    // (or, after a background launch, let it be terminated) as soon as the handler completes.
+    completionHandler(result);
+}
+
+/**
+ * Hands a payload to the plugin, or persists it when no plugin exists yet.
+ *
+ * cordova-ios 8 creates the plugins from CDVViewController's viewDidLoad, which runs once a
+ * scene connects. iOS connects no scene when it launches a terminated app in the background
+ * for a content-available push (and the scene of a notification-tap launch may connect after
+ * the response is delivered), so [FirebasexMessagingPlugin instance] is nil there and a
+ * message sent to it would be dropped silently. The payload is persisted instead and restored
+ * by pluginInitialize at the next launch.
+ */
+- (void)firebasexMessagingHandOverToPlugin:(NSDictionary *)userInfo {
+    FirebasexMessagingPlugin *plugin = [FirebasexMessagingPlugin instance];
+    if (plugin != nil) {
+        [plugin sendNotification:userInfo];
+    } else {
+        [FirebasexMessagingPlugin queueNotificationForNextLaunch:userInfo];
     }
 }
 
@@ -230,10 +273,12 @@ static NSDictionary *mutableUserInfo;
                         messageType = [messageData objectForKey:@"messageType"];
                     }
 
-                    NSDictionary *userInfo = [[NSDictionary alloc]
-                        initWithObjectsAndKeys:@"true", @"notification_foreground",
-                                               messageType, @"messageType",
-                                               aps, @"aps", nil];
+                    // Keep the original payload (custom data keys) so that a tap on this
+                    // local copy delivers the same data as the remote notification.
+                    NSMutableDictionary *userInfo = [messageData mutableCopy];
+                    [userInfo setValue:@"true" forKey:@"notification_foreground"];
+                    [userInfo setValue:messageType forKey:@"messageType"];
+                    [userInfo setValue:aps forKey:@"aps"];
                     objNotificationContent.userInfo = userInfo;
 
                     UNTimeIntervalNotificationTrigger *trigger =
@@ -337,7 +382,7 @@ static NSDictionary *mutableUserInfo;
         }
 
         if (![messageType isEqualToString:@"data"]) {
-            [[FirebasexMessagingPlugin instance] sendNotification:mutableInfo];
+            [self firebasexMessagingHandOverToPlugin:mutableInfo];
         }
     } @catch (NSException *exception) {
         [[FirebasexCorePlugin sharedInstance] handlePluginExceptionWithoutContext:exception];
@@ -389,7 +434,7 @@ static NSDictionary *mutableUserInfo;
         }
 
         [[FirebasexCorePlugin sharedInstance] _logInfo:[NSString stringWithFormat:@"didReceiveNotificationResponse: %@", mutableInfo]];
-        [[FirebasexMessagingPlugin instance] sendNotification:mutableInfo];
+        [self firebasexMessagingHandOverToPlugin:mutableInfo];
         completionHandler();
     } @catch (NSException *exception) {
         [[FirebasexCorePlugin sharedInstance] handlePluginExceptionWithoutContext:exception];

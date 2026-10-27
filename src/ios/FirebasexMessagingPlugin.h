@@ -33,8 +33,20 @@
 /** Returns the singleton plugin instance. */
 + (FirebasexMessagingPlugin *)instance;
 
+/**
+ * Queues a message for JavaScript when no plugin instance exists.
+ *
+ * cordova-ios 8 creates the plugins only once a scene connects, so an app that iOS launched in
+ * the background for a push (it had been terminated) has no plugin instance at all. The payload
+ * is persisted here and restored by pluginInitialize at the next launch.
+ * @param userInfo The notification payload dictionary.
+ */
++ (void)queueNotificationForNextLaunch:(NSDictionary *)userInfo;
+
 /** Delivers any queued notifications to the JavaScript callback. */
 - (void)sendPendingNotifications;
+/** Delivers remote pushes still in Notification Center that were never handed to JavaScript (app not woken). */
+- (void)deliverNotificationsFromNotificationCenter;
 /**
  * Delivers a notification to the JavaScript callback, or queues it if no callback is registered.
  * @param userInfo The notification payload dictionary.

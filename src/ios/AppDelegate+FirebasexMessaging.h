@@ -42,4 +42,12 @@ extern NSString *const FirebasexNotificationSettings;
  * and notification tap responses including actionable notifications.
  */
 @interface CDVAppDelegate (FirebasexMessaging) <UNUserNotificationCenterDelegate, FIRMessagingDelegate>
+
+/**
+ * Installs the UNUserNotificationCenter and FIRMessaging delegates.
+ * Normally triggered by FirebasexAppDidFinishLaunching; also called from the plugin's
+ * pluginInitialize for cordova-ios 8, where the launch swizzle does not run. Idempotent.
+ */
+- (void)firebasexMessagingSetup;
+
 @end

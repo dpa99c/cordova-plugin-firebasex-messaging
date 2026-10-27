@@ -1,3 +1,11 @@
+# Fork (ochakov)
+- (ios) cordova-ios 8: install the notification delegates from `pluginInitialize` when the launch swizzle was bypassed; keep the custom keys in the `notification_foreground` local copy.
+- (ios) Log every delivery decision (`sendNotification: delivering …` / `queued …`) to the device log and the web console; drop stale JS callbacks on page reload (`onReset`).
+- (ios) A `content-available` push without an alert received in the foreground is now delivered to JS (it never reaches `willPresentNotification`, so the old logic dropped it). The handler logs its invocation with NSLog before anything else.
+- (ios) The queue of messages held for the foreground is persisted in NSUserDefaults (restored on the next launch), and the size cap now drops the oldest entry instead of the newest.
+- (ios) Catch-up delivery: when the app becomes active or `onMessageReceived` is registered, every remote push still in Notification Center that was never handed to JS (iOS did not wake the app for its `content-available`) is delivered with `delivery: "notification_center"`, without a tap. Payload fingerprints are remembered (200, in NSUserDefaults) so nothing is delivered twice.
+- (ios) cordova-ios 8 background launch: when iOS launches a terminated app in the background for a `content-available` push, no scene connects and therefore no Cordova plugin exists yet, so the payload used to be handed to a nil plugin instance and lost. The app delegate category now persists it straight into the queue (`+[FirebasexMessagingPlugin queueNotificationForNextLaunch:]`), which `pluginInitialize` restores at the next launch; the same path covers a notification tap that arrives before the scene has connected. The fetch completion handler is called after the payload has been queued or delivered (and also when an exception was caught), and payload values NSUserDefaults cannot store (JSON `null`) no longer prevent the queue from being persisted.
+
 # Version 2.0.3
 - fix: pin core plugin dependency to v2
 - (ios) Resolve pending notification issues
